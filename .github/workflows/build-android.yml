@@ -34,6 +34,17 @@ jobs:
           echo "SRC_REF=$SRC_REF"                    >> "$GITHUB_ENV"
           echo "ref=$SRC_REF sha=$(git rev-parse --short HEAD)"
 
+      - name: Pre-build config
+        run: |
+          set -e
+          if [ -f float/appgen_config.txt ]; then
+            echo "pre-build config found"
+            python3 -m pip install --quiet --disable-pip-version-check pillow
+            python3 float/scripts/apply_appgen.py
+          else
+            echo "no pre-build config"
+          fi
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
