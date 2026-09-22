@@ -73,7 +73,25 @@ jobs:
             "ndk;25.2.9519653"
           "$SDKMANAGER" --install "cmake;3.31.0" || echo "WARN: cmake fallback to runner default"
 
+      # 缓存 Gradle（依赖 / transform / 构建缓存 ~/.gradle/caches/build-cache-1）。
+      # 每次都换新虚拟机，没有它 R8 与编译任务每次都要重算；命中后可直接复用输出。
+      # key 带上 wrapper/build.gradle 的哈希 ⇒ 依赖或配置变了会自动换 key，不会用错缓存。
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('RobotHelper-2.5/Android/gradle/wrapper/gradle-wrapper.properties', 'RobotHelper-2.5/Android/**/*.gradle') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
       - name: Build native libs
+        env:
+          # 只编这三个 ABI（去掉 32 位 armeabi-v7a）：
+          # minSdk 23 ⇒ Android 4/5 那批 32 位老机本来装不上，真机现在基本全 arm64；
+          # 模拟器要 x86/x86_64。build_native_libs.sh 支持用 ABIS 环境变量覆盖，无需改脚本。
+          ABIS: arm64-v8a x86 x86_64
         run: bash scripts/ci/build_native_libs.sh
 
       - name: Build engine jar
